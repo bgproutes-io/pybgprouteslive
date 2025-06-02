@@ -1,0 +1,3 @@
+WEBSOCKET_URL = "wss://websocket.bgproutes.io"
+MESSAGE_TYPE_ANNOUNCE = 1
+MESSAGE_TYPE_WITHDRAW = 2
