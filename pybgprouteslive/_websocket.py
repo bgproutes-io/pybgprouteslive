@@ -4,6 +4,10 @@ from _macros import WEBSOCKET_URL, MESSAGE_TYPE_ANNOUNCE, MESSAGE_TYPE_WITHDRAW
 from _debug import Debug, DEBUG_ESSENTIAL, DEBUG_EXHAUSTIVE, DEBUG_NOTHING, DEBUG_TOO_MUCH
 
 
+CONNECTION_ERROR = 1
+PARSING_ERROR = 2
+MESSAGE_OK = 3
+
 debugger = Debug(None)
 
 
@@ -98,21 +102,35 @@ class BGProutesWebsocketClient:
         try:
             raw_msg = self.websocket.recv()
         except websocket._exceptions.WebSocketConnectionClosedException:
-            return None
+            return CONNECTION_ERROR, None
 
-        json_msg = json.loads(raw_msg)
+        try:
+            json_msg = json.loads(raw_msg)
+        except Exception:
+            return PARSING_ERROR, raw_msg
+        
+        if "error" in json_msg:
+            debugger.wrn_msg("Connection rejected: '{}'.".format(json_msg["error"]), DEBUG_ESSENTIAL)
+            return CONNECTION_ERROR, None
 
         msg = BGPLiveMsg(json_msg)
 
-        return msg
+        return MESSAGE_OK, msg
     
 
     
     def get_next_message(self):
-        msg = self._build_next_msg()
+        ok, msg = self._build_next_msg()
+
+        if ok == CONNECTION_ERROR:
+            debugger.wrn_msg("Connection with websocket has been shutdown.", DEBUG_ESSENTIAL)
+            exit(0)
+
+        if ok == PARSING_ERROR:
+            debugger.err_msg("unable to parse message '{}' from the websocket server.".format(msg), DEBUG_ESSENTIAL)
         
-        while not msg and msg.isMessageOK:
-            msg = self._build_next_msg()
+        while ok != MESSAGE_OK or not msg.isMessageOK:
+            ok, msg = self._build_next_msg()
 
         return msg
 
