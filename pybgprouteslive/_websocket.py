@@ -97,7 +97,7 @@ class BGProutesWebsocketClient:
 
         self.url = "{}/?api_key={}".format(WEBSOCKET_URL, self.APIkey)
 
-        self.websocket = websocket.create_connection(self.url)
+        self.websocket = None
 
 
 
@@ -119,6 +119,10 @@ class BGProutesWebsocketClient:
         msg = BGPLiveMsg(json_msg)
 
         return MESSAGE_OK, msg
+    
+
+    def _connect_websocket(self):
+        self.websocket = websocket.create_connection(self.url)
     
 
 
@@ -156,6 +160,9 @@ class BGProutesWebsocketClient:
 
 
     def get_messages(self):
+        if self.websocket is None:
+            self._connect_websocket()
+            
         while True:
             try:
                 msg = client._get_next_message()
@@ -167,14 +174,14 @@ class BGProutesWebsocketClient:
                 return
 
 
-REQUIRED_PREFIX = "192.23.62.0/24,2804:5b8::/32"
+REQUIRED_PREFIX = "192.23.62.0/24,2a06:3040:10::/48"
 
 
 if __name__ == "__main__":
     client = BGProutesWebsocketClient("6FYTaaSQbgSQ-eD2C5taVWEYCLIujEYGEV4BhCgphr8")
 
     client.subscribe_to_prefixes(REQUIRED_PREFIX)
-    time.sleep(3)
+    time.sleep(1)
 
     for msg in client.get_messages():
         print(msg.prefixes, msg.vp_ip, msg.vp_asn, msg.aspath)
