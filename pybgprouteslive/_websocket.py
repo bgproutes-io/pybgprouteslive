@@ -1,7 +1,9 @@
 import websocket
 import json
-from _macros import WEBSOCKET_URL, MESSAGE_TYPE_ANNOUNCE, MESSAGE_TYPE_WITHDRAW
+import requests
+from _macros import WEBSOCKET_URL, LIVE_MANAGER_URL, MESSAGE_TYPE_ANNOUNCE, MESSAGE_TYPE_WITHDRAW
 from _debug import Debug, DEBUG_ESSENTIAL, DEBUG_EXHAUSTIVE, DEBUG_NOTHING, DEBUG_TOO_MUCH
+import time
 
 
 CONNECTION_ERROR = 1
@@ -91,6 +93,7 @@ class BGPLiveMsg:
 class BGProutesWebsocketClient:
     def __init__(self, APIkey):
         self.APIkey = APIkey
+        self.prefixes = set()
 
         self.url = "{}/?api_key={}".format(WEBSOCKET_URL, self.APIkey)
 
@@ -98,7 +101,7 @@ class BGProutesWebsocketClient:
 
 
 
-    def _build_next_msg(self) -> BGPLiveMsg:
+    def _build_next_msg(self) -> tuple[bool, BGPLiveMsg]:
         try:
             raw_msg = self.websocket.recv()
         except websocket._exceptions.WebSocketConnectionClosedException:
@@ -118,12 +121,28 @@ class BGProutesWebsocketClient:
         return MESSAGE_OK, msg
     
 
+
+    def subscribe_to_prefixes(self, prefixes :str):
+        for pfx in prefixes.split(","):
+            self.prefixes.add(pfx)
+
+        url = "{}/update_live_prefixes?api_key={}&new_pfxs={}".format(LIVE_MANAGER_URL, self.APIkey, prefixes)
+
+        response = requests.get(url)
+        if response.status_code != 200:
+            debugger.err_msg("Unable to setup the prefixes for the API. Receiving error '{}'.".format(response.content.decode()), DEBUG_ESSENTIAL)
+            return False
+        
+        debugger.debug("Prefixes successfully associated to your API key!", DEBUG_EXHAUSTIVE)
+        return True
     
-    def get_next_message(self):
+
+    
+    def _get_next_message(self) -> BGPLiveMsg:
         ok, msg = self._build_next_msg()
 
         if ok == CONNECTION_ERROR:
-            debugger.wrn_msg("Connection with websocket has been shutdown.", DEBUG_ESSENTIAL)
+            debugger.wrn_msg("Connection with websocket server has been shutdown.", DEBUG_ESSENTIAL)
             exit(0)
 
         if ok == PARSING_ERROR:
@@ -133,12 +152,29 @@ class BGProutesWebsocketClient:
             ok, msg = self._build_next_msg()
 
         return msg
+    
+
+
+    def get_messages(self):
+        while True:
+            try:
+                msg = client._get_next_message()
+
+                yield msg
+
+            except KeyboardInterrupt:
+                debugger.debug("Receiving ^C signal, client exits. The association between your API kay and the requested prefixes will be removed after 4 hours of inactivity from your API key. In case it has been removed, you can recreate it using the 'subscribe_to_prefixes' method of this class.", DEBUG_EXHAUSTIVE)
+                return
+
+
+REQUIRED_PREFIX = "192.23.62.0/24,2804:5b8::/32"
 
 
 if __name__ == "__main__":
     client = BGProutesWebsocketClient("6FYTaaSQbgSQ-eD2C5taVWEYCLIujEYGEV4BhCgphr8")
 
-    while True:
-        msg = client.get_next_message()
+    client.subscribe_to_prefixes(REQUIRED_PREFIX)
+    time.sleep(3)
 
-        print(msg.prefixes, msg.aspath)
+    for msg in client.get_messages():
+        print(msg.prefixes, msg.vp_ip, msg.vp_asn, msg.aspath)
