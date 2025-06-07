@@ -34,7 +34,7 @@ class Debug:
 
 
     def err_msg(self, msg, debug_level, end="\n"):
-        if debug_level >= self.debug_level:
+        if debug_level <= self.debug_level:
             currentTime = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             s = Fore.RED+Style.BRIGHT+"[ERROR - {}]: ".format(currentTime) +Style.NORMAL + msg + Fore.WHITE + end
 
@@ -46,7 +46,7 @@ class Debug:
 
 
     def wrn_msg(self, msg, debug_level, end="\n"):
-        if debug_level >= self.debug_level:
+        if debug_level <= self.debug_level:
             currentTime = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             s = Fore.YELLOW+Style.BRIGHT+"[WARNING - {}]: ".format(currentTime) +Style.NORMAL + msg + Fore.WHITE + end
 
@@ -58,7 +58,7 @@ class Debug:
             
 
     def debug(self, msg, debug_level, end="\n"):
-        if debug_level >= self.debug_level:
+        if debug_level <= self.debug_level:
             currentTime = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             s = Fore.BLUE+Style.BRIGHT+"[DEBUG {}]: ".format(currentTime) +Style.NORMAL + msg + Fore.WHITE + end
 

@@ -163,7 +163,31 @@ Output format:
 TIMESTAMP|MSG_TYPE|VP_ASN|VP_IP|PREFIXES|ASPATH|COMMUNITIES|ORIGIN|NEXTHOP
 ```
 
-"msg_type" is "U" in case of an update message, "W" in case of a withdraw, and "UNKNOWN" otherwise.
+---
+
+### 🐞 Debugging
+
+`BGProutesWebsocketClient` includes built-in debugging support with the following methods:
+
+* `set_debug_level(level)` — Set the verbosity level. Available options:
+
+  * `DEBUG_NOTHING` (default)
+  * `DEBUG_ESSENTIAL`
+  * `DEBUG_EXHAUSTIVE`
+  * `DEBUG_TOO_MUCH`
+
+* `set_debug_file(filepath)` — Redirect logs to a specified file. Default is standard error (STDERR).
+
+#### Example
+
+```python
+from pybgprouteslive import BGProutesWebsocketClient, DEBUG_TOO_MUCH
+import os
+
+client = BGProutesWebsocketClient(os.environ["BGP_API_KEY"])
+client.set_debug_level(DEBUG_TOO_MUCH)
+client.set_debug_file("/path/to/debug/file.log")
+```
 
 ---
 
