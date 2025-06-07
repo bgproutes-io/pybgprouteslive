@@ -72,6 +72,12 @@ Once your key is ready and associated with prefixes, connect to:
 wss://websocket.bgproutes.io/?api_key=YOUR_API_KEY
 ```
 
+For instance, using `wscat`:
+
+```
+npx wscat -c "wss://websocket.bgproutes.io/?api_key=YOUR_API_KEY"
+```
+
 ### ⚖️ Rate Limits
 
 Each API key may be associated with up to **10 prefixes**. If you require more, please [contact us](mailto:contact@bgproutes.io) to discuss your use case.
