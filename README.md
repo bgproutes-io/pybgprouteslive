@@ -156,4 +156,4 @@ For bug reports, suggestions, or support:
 
 📧 [contact@bgproutes.io](mailto:contact@bgproutes.io)
 
-Thank you for using BGProutes.io! 🌐
+Thank you for using bgproutes.io! 🌐
