@@ -141,14 +141,15 @@ Represents a BGP message with fields like:
 ```python
 class BGPLiveMsg:
     self.isMessageOK
-    self.record_type      # "U" for update, "W" for withdraw
+    self.record_type
     self.prefixes
     self.aspath
     self.communities
     self.nexthop
     self.origin
     self.timestamp
-    self.vp_ip, self.vp_asn
+    self.vp_ip
+    self.vp_asn
 ```
 
 You can print the message using:
@@ -200,7 +201,7 @@ from pybgprouteslive import BGProutesWebsocketClient, MESSAGE_TYPE_ANNOUNCE
 import os
 
 REQUIRED_PREFIX = "192.23.62.0/24,2a06:3040:10::/48"
-ribs = {}
+ribs = dict()   # This RIB can be initialized using our wonderful historical data API !
 
 client = BGProutesWebsocketClient(os.environ["BGP_API_KEY"])
 client.subscribe_to_prefixes(REQUIRED_PREFIX)
@@ -225,7 +226,7 @@ from pybgprouteslive import BGProutesWebsocketClient, MESSAGE_TYPE_ANNOUNCE, MES
 import os
 
 REQUIRED_PREFIX = "192.23.62.0/24,2a06:3040:10::/48"
-ribs = {}
+ribs = dict()   # This RIB can be initialized using our wonderful historical data API !
 
 client = BGProutesWebsocketClient(os.environ["BGP_API_KEY"])
 client.subscribe_to_prefixes(REQUIRED_PREFIX)
