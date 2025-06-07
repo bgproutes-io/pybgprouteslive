@@ -1,94 +1,24 @@
-# BGProutes Live Data Documentation
+# 📡 bgproutes.io real-time data access
 
-Welcome to **BGProutes.io**, your efficient gateway for accessing **real-time BGP routing data**. This service provides authenticated users with low-latency streams of BGP messages related to their specified prefixes.
+Welcome to **bgproutes.io**’s real-time stream — your gateway to live BGP data. This service offers authenticated users low-latency access to BGP updates collected from the vantage points listed on our [vantage_points](/vantage_points) page.
+These updates are sourced from platforms that support real-time streaming: `bgproutes.io`, `ris`, and `routeviews`.
+For `pch` and `cgtf`, real-time data is not available, but you can still access their historical records through the bgproutes.io API [bgproutes.io API](https://bgproutes.io/data_api/).
 
-The WebSocket server is available at:
-
-```
-wss://websocket.bgproutes.io
-```
-
-It operates over port 443 and connects clients to data streams for prefixes of interest, sourced from our global network of BGP collectors.
-
----
-
-## Overview of the Data Pipeline
-
-Our backend uses Apache Kafka to manage and deliver BGP messages. When a user connects via WebSocket using their API key, the server subscribes to the appropriate Kafka topics to stream messages corresponding to their selected prefixes.
-
-> **Note:** This project is in active development. Temporary service interruptions or bugs may occur.
-
----
-
-## WebSocket Usage Guide
-
-The WebSocket server is accessible at:
-
-```
-wss://websocket.bgproutes.io
-```
-
-We aim to make the connection process as smooth as possible — it might look long here, but it's quick in practice! For even faster integration, consider using our [Python client](https://github.com/bgproutes-io/pybgprouteslive/).
-
-### 🔐 Authentication
-
-Each WebSocket session requires an **API key**, which must be associated with the prefixes you wish to monitor.
-
-1. Log in to [BGProutes.io](https://bgproutes.io).
-2. Navigate to the **API Key** section.
-3. Generate an API key and associate it with a **comma-separated list** of prefixes:
-
-   ```
-   192.23.62.0/24,2a06:3040:10::/48
-   ```
-
-   You may also generate a key with no prefixes initially.
-
-> **Important:** Your API key is **not stored** on our servers. Save it securely — it cannot be recovered.
-
-API key–prefix associations expire after **4 hours** of inactivity (only the prefixes are cleared; the key remains valid).
-
-### 🛠 Alternative Prefix Management
-
-You can also manage your prefixes programmatically via our Live Manager API:
-
-```
-https://live-manager-api.bgproutes.io/update_live_prefixes?api_key=YOUR_API_KEY&new_pfxs=PREFIXES
-```
-
-Example:
+We stream data in real time through our WebSocket server, available at:
 
 ```bash
-curl "https://live-manager-api.bgproutes.io/update_live_prefixes?api_key=MY_KEY&new_pfxs=192.23.62.0/24,2a06:3040:10::/48"
+wss://websocket.bgproutes.io
 ```
 
-Again, our [Python client](https://github.com/bgproutes-io/pybgprouteslive/) makes this even easier.
+The server runs over port 443 and delivers live BGP updates for the IP prefixes configured by each client (and associated to an API key).
+Our backend uses Apache Kafka to manage and deliver BGP updates. When a user connects via WebSocket using their API key, the server subscribes to the appropriate Kafka topics to stream updates for the selected prefixes.
+We exlain in this [page](https://bgproutes.io/data_realtime/) how to directly access our WebSocket (without our Python client).
 
-### 🔌 Connecting to the WebSocket
-
-Once your key is ready and associated with prefixes, connect to:
-
-```
-wss://websocket.bgproutes.io/?api_key=YOUR_API_KEY
-```
-
-For instance, using `wscat`:
-
-```
-npx wscat -c "wss://websocket.bgproutes.io/?api_key=YOUR_API_KEY"
-```
-
-### ⚖️ Rate Limits
-
-Each API key may be associated with up to **10 prefixes**. If you require more, please [contact us](mailto:contact@bgproutes.io) to discuss your use case.
+Below, we explain how to use our Python client, which is highly recommend as it simplifies authentication, connection handling, and data parsing.
 
 ---
 
-## Python Client Guide
-
-To simplify integration, we provide a client library: [pybgprouteslive](https://github.com/bgproutes-io/pybgprouteslive/).
-
-### 📦 Installation
+## 📦 Installation
 
 ```bash
 git clone https://github.com/bgproutes-io/pybgprouteslive.git
@@ -98,7 +28,9 @@ python3 -m pip install .
 
 > Dependencies: `websocket-client` and `requests`. Avoid conflicts with `websockets` by using a virtual environment.
 
-### 🧠 Main Components
+---
+
+## 🧠 Main Components
 
 #### `BGProutesWebsocketClient`
 
@@ -135,12 +67,7 @@ for msg in client.get_messages():
     print(msg)
 ```
 
-### ⚠️ Error Handling
-
-* `WebsocketConnectionError`: Failed to connect (invalid key, duplicate sessions, etc.)
-* `PrefixToAPIKeyError`: Association failure (e.g., malformed prefix list)
-
-### 📬 `BGPLiveMsg` Object
+#### 📬 `BGPLiveMsg` Object
 
 Represents a BGP message with fields like:
 
@@ -169,10 +96,16 @@ Output format:
 ```
 TIMESTAMP|MSG_TYPE|VP_ASN|VP_IP|PREFIXES|ASPATH|COMMUNITIES|ORIGIN|NEXTHOP
 ```
+---
+
+## ⚠️ Error Handling
+
+* `WebsocketConnectionError`: Failed to connect (invalid key, duplicate sessions, etc.)
+* `PrefixToAPIKeyError`: Association failure (e.g., malformed prefix list)
 
 ---
 
-### 🐞 Debugging
+## 🐞 Debugging
 
 `BGProutesWebsocketClient` includes built-in debugging support with the following methods:
 
@@ -200,55 +133,14 @@ client.set_debug_file("/path/to/debug/file.log")
 
 ## Example Scripts
 
-### 🔄 Monitor AS Origin Changes
+In the example directory, we provide a few examples that illustrate how to our Python client.
+You can use them as an example. Feel free to customize them for your own use case.
 
-```python
-from pybgprouteslive import BGProutesWebsocketClient, MESSAGE_TYPE_ANNOUNCE
-import os
+---
 
-REQUIRED_PREFIX = "192.23.62.0/24,2a06:3040:10::/48"
-ribs = dict()   # This RIB can be initialized using our wonderful historical data API !
+### ⚖️ Rate Limits
 
-client = BGProutesWebsocketClient(os.environ["BGP_API_KEY"])
-client.subscribe_to_prefixes(REQUIRED_PREFIX)
-
-for msg in client.get_messages():
-    if msg.record_type != MESSAGE_TYPE_ANNOUNCE:
-        continue
-
-    vp = (msg.vp_asn, msg.vp_ip)
-    origin_as = msg.aspath.split()[-1]
-
-    for prefix in msg.prefixes:
-        if ribs.get(vp, {}).get(prefix) != origin_as:
-            print(f"Origin change detected! {prefix}: {ribs.get(vp, {}).get(prefix)} -> {origin_as}")
-        ribs.setdefault(vp, {})[prefix] = origin_as
-```
-
-### 👀 Track Prefix Visibility
-
-```python
-from pybgprouteslive import BGProutesWebsocketClient, MESSAGE_TYPE_ANNOUNCE, MESSAGE_TYPE_WITHDRAW
-import os
-
-REQUIRED_PREFIX = "192.23.62.0/24,2a06:3040:10::/48"
-ribs = dict()   # This RIB can be initialized using our wonderful historical data API !
-
-client = BGProutesWebsocketClient(os.environ["BGP_API_KEY"])
-client.subscribe_to_prefixes(REQUIRED_PREFIX)
-
-for msg in client.get_messages():
-    vp = (msg.vp_asn, msg.vp_ip)
-
-    if msg.record_type == MESSAGE_TYPE_ANNOUNCE:
-        ribs.setdefault(vp, set()).update(msg.prefixes)
-
-    elif msg.record_type == MESSAGE_TYPE_WITHDRAW:
-        for prefix in msg.prefixes:
-            if prefix in ribs.get(vp, set()):
-                print(f"Visibility lost for {prefix} at {vp}")
-                ribs[vp].remove(prefix)
-```
+Each API key may be associated with up to **10 prefixes**. If you require more, please [contact us](mailto:contact@bgproutes.io) to discuss your use case.
 
 ---
 
