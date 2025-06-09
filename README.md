@@ -133,7 +133,7 @@ client.set_debug_file("/path/to/debug/file.log")
 
 ## Example Scripts
 
-In the example directory, we provide a few examples that illustrate how to our Python client.
+In the example directory, we provide a few examples that illustrate how to use our Python client.
 You can use them as an example. Feel free to customize them for your own use case.
 
 ---
