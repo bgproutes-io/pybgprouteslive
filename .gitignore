@@ -2,3 +2,5 @@ __pycache__/
 */__pycache__/
 pybgprouteslive.egg-info/
 build/
+venv
+example.py

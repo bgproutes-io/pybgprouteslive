@@ -29,8 +29,11 @@ class BGPLiveMsg:
         self.timestamp = None
 
         # Collector information
-        self.vp_ip  = None
-        self.vp_asn = None
+        self.vp_ip      = None
+        self.vp_asn     = None
+        self.parent_ip  = None
+        self.parent_asn = None
+        self.protocol   = None
 
         self.err = None
         ok, err = self._parse_bgp_msg(msg)
@@ -43,10 +46,17 @@ class BGPLiveMsg:
         if "record_type" not in msg:
             return False, "Unable to find the 'record_type' of message '{}'. Skiping this message.".format(msg)
         
-        if msg["record_type"] == "update":
-            self.record_type = MESSAGE_TYPE_ANNOUNCE
-        elif msg["record_type"] == "withraw":
-            self.record_type = MESSAGE_TYPE_WITHDRAW
+        if msg["record_type"] == "update" or msg["record_type"] == "bmp_update":
+            if "prefixes" in msg:
+                self.record_type = MESSAGE_TYPE_ANNOUNCE
+            else:
+                self.record_type = MESSAGE_TYPE_WITHDRAW
+
+            if msg["record_type"] == "update":
+                self.protocol = 'bgp'
+            else:
+                self.protocol = 'bmp'
+            
         else:
             return False, "Invalid record type '{}'. Skiping this message.".format(msg["record_type"])
         
@@ -56,8 +66,21 @@ class BGPLiveMsg:
             if "_" not in msg["vp"]:
                 return
             
-            self.vp_asn = int(msg["vp"].split("_")[0])
-            self.vp_ip  = msg["vp"].split("_")[1]
+            if self.protocol == 'bgp':
+                self.vp_asn = int(msg["vp"].split("_")[0])
+                self.vp_ip  = msg["vp"].split("_")[1]
+
+            else:
+                if "bmp_peer" not in msg:
+                    return False, "Unable to find the sending Vantage Point for message '{}'. Skiping this message.".format(msg)
+
+                self.vp_asn = int(msg["bmp_peer"].split("_")[0])
+                self.vp_ip  = msg["bmp_peer"].split("_")[1]
+
+                self.parent_asn = int(msg["vp"].split("_")[0])
+                self.parent_ip  = msg["vp"].split("_")[1]
+
+
 
         # Setting up the timestamp of the message 
         if "sec" in msg:
@@ -101,7 +124,10 @@ class BGPLiveMsg:
         if self.record_type == MESSAGE_TYPE_WITHDRAW:
             msg_type = "W"
 
-        res = "{}|{}|{}|{}|{}|{}|{}|{}|{}".format(self.timestamp, msg_type, self.vp_asn, self.vp_ip, ",".join(self.prefixes), self.aspath, self.communities, self.origin, self.nexthop)
+        if self.protocol == 'bgp':
+            res = "{}|{}|bgp|{}|{}|||{}|{}|{}|{}|{}".format(self.timestamp, msg_type, self.vp_asn, self.vp_ip, ",".join(self.prefixes), self.aspath, self.communities, self.origin, self.nexthop)
+        else:
+            res = "{}|{}|bmp|{}|{}|{}|{}|{}|{}|{}|{}|{}".format(self.timestamp, msg_type, self.vp_asn, self.vp_ip, self.parent_asn, self.parent_ip, ",".join(self.prefixes), self.aspath, self.communities, self.origin, self.nexthop)
 
         return res
 
@@ -187,6 +213,7 @@ class BGProutesWebsocketClient:
         
         while ok != MESSAGE_OK or not msg.isMessageOK:
             ok, msg = self._build_next_msg()
+            print(ok, msg)
 
         return msg
     
@@ -204,18 +231,4 @@ class BGProutesWebsocketClient:
             except KeyboardInterrupt:
                 self.debugger.debug("Receiving ^C signal, client exits. The association between your API kay and the requested prefixes will be removed after 4 hours of inactivity from your API key. In case it has been removed, you can recreate it using the 'subscribe_to_prefixes' method of this class.", DEBUG_EXHAUSTIVE)
                 return
-
-
-
-REQUIRED_PREFIX = "192.23.62.0/24,2a06:3040:10::/48"
-
-
-if __name__ == "__main__":
-    client = BGProutesWebsocketClient("6FYTaaSQbgSQ-eD2C5taVWEYCLIujEYGEV4BhCgphr8")
-
-    client.subscribe_to_prefixes(REQUIRED_PREFIX)
-    time.sleep(1)
-
-    for msg in client.get_messages():
-        txt = "{}|{}|{}_{}|{}|{}".format(int(msg.timestamp), ",".join(sorted(msg.prefixes)), msg.vp_asn, msg.vp_ip, msg.aspath, msg.communities)
-        print(txt)
+            

@@ -81,8 +81,11 @@ class BGPLiveMsg:
     self.nexthop
     self.origin
     self.timestamp
+    self.protocol
     self.vp_ip
     self.vp_asn
+    self.parent_ip
+    self.parent_asn
 ```
 
 You can print the message using:
@@ -94,8 +97,11 @@ str(msg)
 Output format:
 
 ```
-TIMESTAMP|MSG_TYPE|VP_ASN|VP_IP|PREFIXES|ASPATH|COMMUNITIES|ORIGIN|NEXTHOP
+TIMESTAMP|MSG_TYPE|PEERING_PROTOCOL|VP_ASN|VP_IP|PARENT_ASN|PARENT_IP|PREFIXES|ASPATH|COMMUNITIES|ORIGIN|NEXTHOP
 ```
+
+Note that in the case of BGP messages, PARENT_ASN and PARENT_IP are just empty strings
+
 ---
 
 ## ⚠️ Error Handling

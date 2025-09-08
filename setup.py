@@ -9,6 +9,7 @@ setup(
     install_requires=[
         'websocket-client',
         'requests',
+        'colorama'
     ],
     python_requires='>=3.7',
 )
